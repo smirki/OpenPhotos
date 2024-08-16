@@ -1,7 +1,7 @@
 
 # OpenPhotos: A Locally Hosted Alternative to Google Photos
 
-  
+![enter image description here](openphotos.png)
 
 **OpenPhotos** is an open-source, locally hosted alternative to Google Photos. It features robust facial recognition, AI-powered search, image tagging, and more, offering you complete control over your photo library. OpenPhotos is designed for those who prioritize privacy, flexibility, and high-performance photo management without relying on cloud services.
 
