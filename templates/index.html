@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Gallery</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+    <header class="gallery-header">
+        <div class="logo">
+            <a href="/" class="logo-link">
+                <i class="fa-solid fa-fan" style="color: yellow;"></i>
+                <strong class="logo-text">OpenPhotos</strong>
+            </a>
+        </div>
+        <div class="search-bar-container">
+            <form method="GET" action="/" class="search-bar-form">
+                <input type="text" name="search" placeholder="Search photos..." class="search-input">
+            </form>
+        </div>
+        <div class="progress-indicators">
+            <div class="progress-bar face-detection-bar">
+                <span>Face Detection: <span id="face-detection-progress">0%</span></span>
+            </div>
+            <div class="progress-bar tagging-bar">
+                <span>Tagging: <span id="tagging-progress">0%</span></span>
+            </div>
+        </div>
+        <div class="settings-toggle">
+            <button class="settings-button" id="open-settings">Settings</button>
+            <button class="import-button" id="open-import">Import</button>
+        </div>
+    </header>
+    
+
+    <main class="timeline">
+        <!-- Normal Search Results -->
+        {% for month_year, photos in grouped_photos.items() %}
+        <section class="month-section">
+            <h2 class="month-title" onclick="toggleVisibility(this)">
+                {{ month_year }}
+                <span class="fold-icon">+</span>
+            </h2>
+            <div class="thumbnails-container">
+                {% for photo in photos %}
+                <div class="thumbnail-container square">
+                    <a href="{{ url_for('view_photo', photo_path=photo['path']) }}" class="thumbnail-link">
+                        <img src="{{ url_for('static', filename='thumbnails/' + photo['path'].split('/')[-1]) }}"
+                            alt="Thumbnail" class="thumbnail-image">
+                    </a>
+                    <div class="pills-container">
+                        {% for pill in photo['pills'] %}
+                        <span class="pill {% if pill == 'FACE' %}pill-face{% elif pill == 'TAGS' %}pill-tags{% endif %}">{{ pill }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button class="expand-button" onclick="toggleMorePhotos(this)">+ Show More</button>
+        </section>
+        
+        {% endfor %}
+
+        <!-- Divider -->
+        <hr>
+
+        <!-- AI Search Results -->
+        {% if ai_grouped_photos %}
+        <section>
+            <h2>AI Search Results</h2>
+            {% for month_year, photos in ai_grouped_photos.items() %}
+            <section class="month-section">
+                <h2 class="month-title" onclick="toggleVisibility(this)">
+                    {{ month_year }}
+                    <span class="fold-icon">+</span>
+                </h2>
+                <div class="thumbnails-container">
+                    {% for photo in photos %}
+                    <div class="thumbnail-container golden-ratio">
+                        <a href="{{ url_for('view_photo', photo_path=photo['path']) }}" class="thumbnail-link">
+                            <img src="{{ url_for('static', filename='thumbnails/' + photo['path'].split('/')[-1]) }}"
+                                alt="Thumbnail" class="thumbnail-image">
+                        </a>
+                        <div class="pills-container">
+                            {% for pill in photo['pills'] %}
+                            <span class="pill {% if pill == 'FACE' %}pill-face{% elif pill == 'TAGS' %}pill-tags{% endif %}">{{ pill }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="half-circle-chart">
+                            <div class="face-detection-chart">
+                                <div class="face-detection-circle" style="background: conic-gradient(#ff9800 {{ photo['face_detection'] }}%, #444 {{ photo['face_detection'] }}% 100%);"></div>
+                            </div>
+                            <div class="tagging-chart">
+                                <div class="tagging-circle" style="background: conic-gradient(#4caf50 {{ photo['tagging'] }}%, #444 {{ photo['tagging'] }}% 100%);"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="expand-button" onclick="toggleMorePhotos(this)">+ Show More</button>
+            </section>
+            {% endfor %}
+        </section>
+        {% endif %}
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <span class="close" id="close-settings">&times;</span>
+            </div>
+            <div class="modal-body">
+                <label for="face-detection-toggle">Face Detection:</label>
+                <input type="checkbox" id="face-detection-toggle">
+
+                <label for="tagging-toggle">Tagging:</label>
+                <input type="checkbox" id="tagging-toggle">
+
+                <label for="llama-url">Llama URL:</label>
+                <input type="url" id="llama-url" placeholder="http://localhost:11434" value="http://localhost:11434">
+
+                <label for="llama-model">Llama Model:</label>
+                <input type="text" id="llama-model" placeholder="llama3.1:latest" value="llama3.1:latest">
+            </div>
+            <div class="modal-footer">
+                <button id="save-settings">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Photos</h2>
+                <span class="close" id="close-import">&times;</span>
+            </div>
+            <div class="modal-body">
+                <label for="import-path">Where do you want to import and link photos from? (This won’t move your photos)</label>
+                <input type="text" id="import-path" placeholder="Enter the path">
+            </div>
+            <div class="modal-footer">
+                <button id="start-import">Start Import</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleVisibility(element) {
+            const thumbnailsContainer = element.nextElementSibling;
+            const icon = element.querySelector('.fold-icon');
+            if (thumbnailsContainer.style.display === "none" || thumbnailsContainer.style.display === "") {
+                thumbnailsContainer.style.display = "flex";
+                icon.textContent = "-";
+            } else {
+                thumbnailsContainer.style.display = "none";
+                icon.textContent = "+";
+            }
+        }
+
+        function toggleMorePhotos(button) {
+    const thumbnailsContainer = button.previousElementSibling;
+
+    if (thumbnailsContainer.style.maxHeight === "none" || thumbnailsContainer.style.maxHeight === "") {
+        thumbnailsContainer.style.maxHeight = "300px";
+        thumbnailsContainer.style.overflow = "hidden";
+        button.textContent = "+ Show More";
+    } else {
+        thumbnailsContainer.style.maxHeight = "none";
+        thumbnailsContainer.style.overflow = "visible";
+        button.textContent = "- Show Less";
+    }
+}
+
+
+
+        document.getElementById('open-settings').addEventListener('click', function () {
+            document.getElementById('settings-modal').style.display = 'block';
+        });
+
+        document.getElementById('close-settings').addEventListener('click', function () {
+            document.getElementById('settings-modal').style.display = 'none';
+        });
+
+        document.getElementById('open-import').addEventListener('click', function () {
+            document.getElementById('import-modal').style.display = 'block';
+        });
+
+        document.getElementById('close-import').addEventListener('click', function () {
+            document.getElementById('import-modal').style.display = 'none';
+        });
+
+        window.onclick = function (event) {
+            if (event.target == document.getElementById('settings-modal')) {
+                document.getElementById('settings-modal').style.display = 'none';
+            } else if (event.target == document.getElementById('import-modal')) {
+                document.getElementById('import-modal').style.display = 'none';
+            }
+        }
+
+        document.getElementById('face-detection-toggle').addEventListener('change', function () {
+            if (this.checked) {
+                fetch('/start_face_detection', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => console.log(data));
+            } else {
+                fetch('/stop_face_detection', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => console.log(data));
+            }
+        });
+
+        document.getElementById('tagging-toggle').addEventListener('change', function () {
+            if (this.checked) {
+                fetch('/start_tagging', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => console.log(data));
+            } else {
+                fetch('/stop_tagging', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => console.log(data));
+            }
+        });
+
+        setInterval(() => {
+            fetch('/face_detection_status')
+                .then(response => response.json())
+                .then(data => {
+                    const progress = Math.floor((data.processed_images / data.total_images) * 100);
+                    document.getElementById('face-detection-progress').textContent = `${progress}%`;
+                });
+
+            fetch('/tagging_status')
+                .then(response => response.json())
+                .then(data => {
+                    const progress = Math.floor((data.tagged_images / data.total_images) * 100);
+                    document.getElementById('tagging-progress').textContent = `${progress}%`;
+                });
+        }, 1000);
+    </script>
+</body>
+
+</html>

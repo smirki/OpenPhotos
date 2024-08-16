@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Search Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .search-results-container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.5s ease-in-out;
+            box-sizing: border-box;
+            margin-top: 20px; 
+        }
+
+        .search-results-container h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #76c7c0;
+            text-align: center;
+        }
+
+        .original-image,
+        .similar-photos {
+            margin-bottom: 20px;
+        }
+
+        .original-image h3,
+        .similar-photos h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #b3e5fc;
+            text-align: center;
+        }
+
+        .original-image img {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 8px;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .similar-photos {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .photo-item {
+            background-color: #2a2a2a;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            width: 150px;
+        }
+
+        .photo-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 6px;
+            border: 2px solid #3a3a3a;
+        }
+
+        .photo-item p {
+            margin-top: 10px;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .original-image img {
+                max-width: 100%;
+            }
+
+            .photo-item {
+                width: 120px;
+            }
+
+            .search-results-container h2 {
+                font-size: 1.5rem;
+            }
+
+            .original-image h3,
+            .similar-photos h3 {
+                font-size: 1.3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .photo-item {
+                width: 100%;
+            }
+
+            .search-results-container {
+                padding: 15px;
+            }
+
+            .photo-item img {
+                border-radius: 4px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="search-results-container">
+        <h2>Face Search Results</h2>
+        <div class="original-image">
+            <h3>Original Image</h3>
+            <img src="{{ url_for('image', filename=original_image) }}" alt="Original Photo">
+        </div>
+
+        <div class="similar-photos">
+            <h3>Similar Photos</h3>
+            {% for photo in similar_photos %}
+            <div class="photo-item">
+                <a href="{{ url_for('view_photo', photo_path=photo['path']) }}">
+                    <img src="{{ url_for('image', filename=photo['thumbnail']) }}" alt="Similar Photo">
+                </a>
+                <p>{{ photo['date'] }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+
+</html>

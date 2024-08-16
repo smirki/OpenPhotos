@@ -1,0 +1,154 @@
+
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+header {
+    width: 100%;
+    background-color: #00bcd4;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.top-nav .nav-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-button {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    background-color: #0288d1;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.nav-button:hover {
+    background-color: #0277bd;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.photo-area {
+    flex: 3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+}
+
+.image-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.zoomable-photo {
+    max-width: 100%;
+    max-height: 100%;
+    cursor: zoom-in;
+    transition: transform 0.3s ease;
+    transform-origin: center center;
+}
+
+.zoomable-photo:active {
+    cursor: zoom-out;
+}
+
+.exif-sidebar {
+    flex: 1;
+    background-color: #fafafa;
+    padding: 20px;
+    overflow-y: auto;
+    border-left: 1px solid #e0e0e0;
+}
+
+.exif-sidebar h3 {
+    margin-top: 0;
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.exif-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.exif-sidebar li {
+    padding: 5px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.exif-sidebar li:last-child {
+    border-bottom: none;
+}
+
+.face-box {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.face-box:hover {
+    border-color: #ff5722;
+    background-color: rgba(255, 87, 34, 0.2);
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+
+    .photo-area {
+        order: 1;
+        height: 50%;
+    }
+
+    .exif-sidebar {
+        order: 2;
+        height: 50%;
+        border-left: none;
+        border-top: 1px solid #e0e0e0;
+    }
+}

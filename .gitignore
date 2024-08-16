@@ -1,0 +1,8 @@
+thumbnails/
+__pycache__/
+venv/ .vscode/
+.venv/
+photo_data.db
+photo_data.json
+images/
+scripts

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ photo['path'].split('/')[-1] }} - Photo View</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stylesimage.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav class="top-nav">
+                <div class="nav-buttons">
+                    {% if prev_photo %}
+                        <a href="{{ url_for('view_photo', photo_path=prev_photo['path']) }}" class="nav-button prev-button" aria-label="Previous Photo">❮ Previous</a>
+                    {% endif %}
+                    {% if next_photo %}
+                        <a href="{{ url_for('view_photo', photo_path=next_photo['path']) }}" class="nav-button next-button" aria-label="Next Photo">Next ❯</a>
+                    {% endif %}
+                </div>
+                <button class="close-button" onclick="window.history.back()" aria-label="Close">✕</button>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <div class="photo-area" {% if latitude and longitude %} style="flex: 2;" {% endif %}>
+                <div class="image-container" id="image-container">
+                    <img id="photo" src="{{ url_for('image', filename=photo['path']) }}" alt="Photo" class="zoomable-photo" onclick="openImageInNewTab('{{ url_for('image', filename=photo['path']) }}')">
+                    {% if detected_faces and detected_faces|length > 0 %}
+                    <script>
+                        function scaleFaces() {
+                            const img = document.getElementById('photo');
+                    
+                            if (img.naturalWidth && img.naturalHeight) {
+                                const imgWidth = img.naturalWidth;
+                                const imgHeight = img.naturalHeight;
+                                const displayedWidth = img.clientWidth;
+                                const displayedHeight = img.clientHeight;
+                    
+                                const container = document.getElementById('image-container');
+                                const containerWidth = container.clientWidth;
+                                const containerHeight = container.clientHeight;
+                    
+                                const widthScale = displayedWidth / imgWidth;
+                                const heightScale = displayedHeight / imgHeight;
+
+                                const offsetX = (containerWidth - displayedWidth) / 2;
+                                const offsetY = (containerHeight - displayedHeight) / 2;
+                    
+                                console.log('Image dimensions:', { imgWidth, imgHeight });
+                                console.log('Displayed image dimensions:', { displayedWidth, displayedHeight });
+                                console.log('Container dimensions:', { containerWidth, containerHeight });
+                                console.log('Offsets:', { offsetX, offsetY });
+                                console.log('Scale factors:', { widthScale, heightScale });
+                    
+                                {% for face in detected_faces %}
+                                    const faceBox = document.querySelector('.face-box[data-id="{{ face['id'] }}"]');
+                                    const faceBoxWidth = {{ face['facial_area']['w'] }} * widthScale;
+                                    const faceBoxHeight = {{ face['facial_area']['h'] }} * heightScale;
+                                    const faceBoxLeft = {{ face['facial_area']['x'] }} * widthScale + offsetX;
+                                    const faceBoxTop = {{ face['facial_area']['y'] }} * heightScale + offsetY;
+                    
+                                    faceBox.style.width = faceBoxWidth + 'px';
+                                    faceBox.style.height = faceBoxHeight + 'px';
+                                    faceBox.style.left = faceBoxLeft + 'px';
+                                    faceBox.style.top = faceBoxTop + 'px';
+                    
+                                    console.log('Face box ID:', '{{ face['id'] }}');
+                                    console.log('Face box dimensions:', { faceBoxWidth, faceBoxHeight });
+                                    console.log('Face box position:', { faceBoxLeft, faceBoxTop });
+                                {% endfor %}
+                            } else {
+                                console.warn('Image dimensions not yet available.');
+                            }
+                        }
+                    
+                        document.addEventListener("DOMContentLoaded", function() {
+                            const img = document.getElementById('photo');
+                            img.onload = scaleFaces;
+                    
+                            const container = document.getElementById('image-container');
+                            const observer = new ResizeObserver(scaleFaces);
+                            observer.observe(container);
+                        });
+                    </script>
+                    
+                        {% for face in detected_faces %}
+                            <div class="face-box" data-id="{{ face['id'] }}" style="position: absolute; border: 2px solid #00bcd4; border-radius: 4px; background-color: rgba(0, 188, 212, 0.2);" onclick="searchSimilarFaces({{ face['embedding']|tojson }})"></div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <aside class="exif-sidebar">
+                {% if latitude and longitude %}
+                <div id="map" style="height: 200px;"></div>
+                {% endif %}
+                <h3>EXIF Data</h3>
+                <form id="exif-form" action="{{ url_for('update_exif', photo_id=photo['id']) }}" method="POST">
+                    <ul>
+                        {% for key, value in photo['metadata'].items() %}
+                            <li>
+                                <strong>{{ key }}:</strong>
+                                <input type="text" name="{{ key }}" value="{{ value }}">
+                            </li>
+                        {% endfor %}
+                        <li>
+                            <button type="button" onclick="addExifField()">Add EXIF Field</button>
+                        </li>
+                    </ul>
+                    <button type="submit">Save EXIF</button>
+                </form>
+            
+                <h3>Tags</h3>
+                <form id="tags-form" action="{{ url_for('update_tags', photo_id=photo['id']) }}" method="POST">
+                    <ul id="tags-list">
+                        {% for tag in photo['tags'] %}
+                            <li>
+                                <input type="text" name="tags" value="{{ tag }}">
+                            </li>
+                        {% endfor %}
+                        <li>
+                            <button type="button" onclick="addTagField()">Add Tag</button>
+                        </li>
+                    </ul>
+                    <button type="submit">Save Tags</button>
+                </form>
+            </aside>
+            
+            <script>
+                function addExifField() {
+                    const ul = document.querySelector("#exif-form ul");
+                    const li = document.createElement("li");
+                    li.innerHTML = '<input type="text" name="new_key" placeholder="New EXIF Key">: <input type="text" name="new_value" placeholder="New EXIF Value">';
+                    ul.appendChild(li);
+                }
+            
+                function addTagField() {
+                    const ul = document.getElementById("tags-list");
+                    const li = document.createElement("li");
+                    li.innerHTML = '<input type="text" name="tags" placeholder="New Tag">';
+                    ul.appendChild(li);
+                }
+            
+                document.getElementById('exif-form').onsubmit = function(event) {
+                    event.preventDefault();
+                    const form = event.target;
+                    const formData = new FormData(form);
+            
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new URLSearchParams(formData)
+                    }).then(response => response.json()).then(data => {
+                        if (data.status === 'success') {
+                            alert('EXIF data updated successfully!');
+                        }
+                    });
+                };
+            
+                document.getElementById('tags-form').onsubmit = function(event) {
+                    event.preventDefault();
+                    const form = event.target;
+                    const formData = new FormData(form);
+            
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new URLSearchParams(formData)
+                    }).then(response => response.json()).then(data => {
+                        if (data.status === 'success') {
+                            alert('Tags updated successfully!');
+                        }
+                    });
+                };
+            </script>
+            
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        function openImageInNewTab(url) {
+            window.open(url, '_blank').focus();
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            {% if latitude and longitude %}
+            function initMap() {
+                try {
+                    console.log('Initializing map with location:', {{ latitude }}, {{ longitude }});
+                    const photoLocation = [{{ latitude }}, {{ longitude }}];
+                    const map = L.map('map').setView(photoLocation, 13);
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                    }).addTo(map);
+
+                    L.marker(photoLocation).addTo(map);
+                    console.log('Map initialized successfully');
+                } catch (error) {
+                    console.error('Error initializing map:', error);
+                }
+            }
+            initMap();
+            {% endif %}
+        });
+
+        {% if detected_faces and detected_faces|length > 0 %}
+        const embedding = {{ detected_faces[0]['embedding']|tojson }};
+        function performFaceSearch() {
+            searchSimilarFaces(embedding);
+        }
+        {% else %}
+        function performFaceSearch() {
+            alert('No face detected to search.');
+        }
+        {% endif %}
+
+        function searchSimilarFaces(embedding) {
+            fetch('{{ url_for("search_face") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ embedding: embedding, original_image: '{{ photo["path"] }}' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    fetch('{{ url_for("face_search_results") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ original_image: '{{ photo["path"] }}', similar_photos: data })
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        document.open();
+                        document.write(html);
+                        document.close();
+                    });
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html>
