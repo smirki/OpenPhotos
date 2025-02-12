@@ -8,10 +8,10 @@ import base64
 import json
 
 
-load_dotenv()
+load_dotenv(verbose=True, override=True)
 
 OLLAMA_API_URL = 'http://localhost:11434/api/generate'
-MODEL_NAME = 'llava'
+MODEL_NAME = os.getenv('VISION_MODEL')
 DATABASE_PATH = 'photo_data.db'
 IMAGE_FOLDER = os.getenv('IMAGE_FOLDER')
 SERVER_URL = 'http://localhost:5000' 

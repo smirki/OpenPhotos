@@ -30,7 +30,7 @@
 
 -  **Map Integration**: View your photos on a map based on their geolocation data.
 
--  **Fully Local**: All data processing happens on your local machine, ensuring your privacy.
+-  **Fully Local**: All data processing happens on your local machine, ensuring your privacy. Open photos will not touch your photos at all. 
 
   
 
